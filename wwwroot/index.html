@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>如视全景下载器</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#202124;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{max-width:760px;margin:10vh auto;padding:24px}.card{background:#fff;border:1px solid #e3e5e8;border-radius:14px;padding:28px}h1{margin:0 0 10px;font-size:24px}p{color:#666}label{display:block;margin:22px 0 8px;font-weight:600}input{width:100%;padding:12px 14px;border:1px solid #cfd3d8;border-radius:9px;font-size:15px}button{margin-top:14px;border:0;border-radius:9px;padding:11px 18px;background:#111;color:#fff;font-size:15px;cursor:pointer}button:disabled{opacity:.45;cursor:wait}#msg{margin-top:14px;white-space:pre-wrap;color:#555}.note{font-size:13px;color:#888;margin-top:18px}
+  </style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+  <h1>如视全景下载器</h1>
+  <p>供本地备份和离线展示使用：输入你有权使用的公开分享链接，生成包含 Cube 全景图和离线预览页的 ZIP。</p>
+  <label for="url">分享链接</label>
+  <input id="url" placeholder="https://realsee.ikongjian.com/vr/PK*******?...">
+  <button id="go">下载并打包</button>
+  <div id="msg" aria-live="polite"></div>
+  <div class="note">仅处理无需绕过登录或访问控制即可打开的公开链接。使用即表示你确认拥有相关内容的访问、下载和使用权限，并同意遵守适用法律、平台条款及权利人的授权范围。请勿用于未经授权的采集、传播或商业用途。</div>
+</div></div>
+<script>
+const btn=document.querySelector('#go'), input=document.querySelector('#url'), msg=document.querySelector('#msg');
+async function run(){
+  const url=input.value.trim(); if(!url){msg.textContent='请输入分享链接。';return}
+  btn.disabled=true;msg.textContent='正在读取项目并下载全景资源…';
+  try{
+    const r=await fetch('/api/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    if(!r.ok){let t=await r.text();try{t=JSON.parse(t).message||JSON.parse(t).detail||t}catch{}throw new Error(t)}
+    const blob=await r.blob();
+    const cd=r.headers.get('content-disposition')||'';const m=/filename\*?=(?:UTF-8''|\")?([^\";]+)/i.exec(cd);const name=m?decodeURIComponent(m[1].replace(/\"/g,'')):'realsee.zip';
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    msg.textContent='打包完成，ZIP 已开始下载。';
+  }catch(e){msg.textContent='失败：'+e.message}finally{btn.disabled=false}
+}
+btn.addEventListener('click',run);input.addEventListener('keydown',e=>{if(e.key==='Enter')run()});
+</script>
+</body>
+</html>
